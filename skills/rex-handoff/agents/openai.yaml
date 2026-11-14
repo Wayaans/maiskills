@@ -1,0 +1,5 @@
+interface:
+  display_name: "Rex Handoff"
+  short_description: "Hand off to a new Rex tab"
+policy:
+  allow_implicit_invocation: false

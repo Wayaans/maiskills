@@ -1,0 +1,5 @@
+interface:
+  display_name: "Review Issue"
+  short_description: "Plan a GitHub issue against the codebase"
+policy:
+  allow_implicit_invocation: false
