@@ -28,9 +28,15 @@ Read surrounding code only where you need it to understand the diff. Edit nothin
 
 The active reviewers start as all four skills: `code-review-and-quality`, `code-simplification`, `performance-optimization`, `security-and-hardening`.
 
-In one message, spawn one reviewer subagent per active skill, in parallel, each briefed with the reviewer prompt below. Wait for all of them to report.
+List the files to review: `gh pr diff <number> --name-only`, minus generated files and lockfiles.
 
-A reviewer that returns no major or medium findings (or N/A) is **clean**: drop it from the active reviewers for later rounds.
+In one message, spawn one reviewer subagent per active skill, in parallel, each with the reviewer prompt below. Send the prompt as written. Add no file priorities, focus hints, or summary of the diff: reviewers treat such hints as their whole scope.
+
+When the list has more than 40 files, split it into batches of related files (by directory, at most 40 each) and spawn one reviewer per active skill per batch, each with its batch on the `Files:` line.
+
+Wait for all of them to report. Compare the files each reviewer says it reviewed with the files it was given, and spawn it again for any it missed, with those on its `Files:` line.
+
+A reviewer that reviewed every file and returned no major or medium findings is **clean**: drop it from the active reviewers for later rounds.
 
 ## 4. Fix
 
@@ -71,12 +77,13 @@ A concise summary:
 ## Reviewer prompt
 
 ```
-You are a read-only reviewer for PR #<number> (<url>). Base: <baseRefName>.
-Read ~/.claude/skills/<skill>/SKILL.md and apply it as your review lens.
-Review only the PR's changes (`git diff origin/<baseRefName>...HEAD`); read surrounding code only to judge them.
-Edit nothing.
-Already declined (do not re-raise unless the reason is wrong; then say why):
-<finding | reason, one per line, or "none">
-Return one line per finding: <major|medium|minor> | <file:line> | <issue> | <concrete fix>.
-If your lens does not apply to this diff, return exactly: N/A, with one line saying why.
+Round <n>. Use the <skill> skill to review PR #<number>.
+Report findings only, each labelled major, medium, or minor. Edit nothing.
+Already declined: <finding | reason, one per line, or "none">
+End with the files you reviewed.
 ```
+
+Add one of these lines only when it applies:
+
+- `Files: <paths>` when the reviewer covers a batch or files missed earlier.
+- `Scope: only the fix commits (git diff <first-round head>...HEAD).` in the last round.
