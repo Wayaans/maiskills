@@ -29,8 +29,9 @@ npx skills update -g
 | [`rex-handoff`](skills/rex-handoff/SKILL.md) | Hand the conversation off to a fresh Claude session in a new Rex tab. |
 | [`t3-handoff`](skills/t3-handoff/SKILL.md) | Hand the conversation off to a fresh T3 Code thread. |
 | [`unslop`](skills/unslop/SKILL.md) | Cut AI tells from any writing. |
+| [`verify-it-work`](skills/verify-it-work/SKILL.md) | Verify in a real browser that a change works as intended, scoped to the change and what directly touches it. |
 
-Most skills set `disable-model-invocation: true`, so they run only when called by name (for example `/unslop`).
+Skills that set `disable-model-invocation: true` run only when called by name (for example `/review-issue`). The rest can also be invoked by the agent.
 
 ## Dependencies
 
