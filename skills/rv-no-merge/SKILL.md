@@ -7,6 +7,8 @@ disable-model-invocation: true
 
 You are the **orchestrator**. You implemented the change in this conversation, and you now take its PR through three stages in order: review, verify, CI. You stop when the PR is ready to merge. You never merge it.
 
+**Requires** the `pr-gate-quality` and `verify-it-work` skills, plus what `pr-gate-quality` itself requires. If either is missing, stop and tell the user to install it.
+
 Review and verify each run in their own **thread**: a separate agent session in a new tab, never a subagent of yours. The thread does the work with its own skill and reports back to you. Everything else may use subagents, including the threads themselves.
 
 Work autonomously. Ask the user only when:
@@ -30,21 +32,23 @@ Use the thread tool of the harness you are running in. If you are in neither Rex
 
 **Rex.** A thread is a new background tab running Claude. Your own address is `$REX_SESSION` and `$REX_BLOCK`. Check them with `rex block inspect -s "$REX_SESSION" "$REX_BLOCK"`. If that fails, or `CLAUDE_JOB_DIR` is set (a background job inherits another pane's values), ask the user which session and pane you are in.
 
+Write the thread prompt to a file in the OS temp directory, then:
+
 ```sh
 rex window new -s "$REX_SESSION" "<name>" -c "$PWD" --focus=false --json -- \
-  sh -c 'claude --name "$1" --permission-mode "$2" -- "$3"' sh "<name>" "<mode>" "<prompt>"
+  sh -c 'claude --name "$1" --permission-mode "$2" -- "$(cat "$3")"' sh "<name>" "<mode>" "<prompt file>"
 ```
 
-Set `<mode>` to this session's permission mode. Keep `.block_ids[0]` from the output: it is the thread's address. If the command times out, check `rex window ls -s "$REX_SESSION" --json` before retrying, so you don't open a duplicate tab.
+Passing the file through `sh -c` keeps the shell from breaking on the quotes and `&&` in the prompt. Set `<mode>` to this session's permission mode. Keep `.block_ids[0]` from the output: it is the thread's address. If the command times out, check `rex window ls -s "$REX_SESSION" --json` before retrying, so you don't open a duplicate tab.
 
 To message a thread again, type into its pane:
 
 ```sh
-rex send -s "$REX_SESSION" -b "<thread block>" '<one line>' &&
+rex send -s "$REX_SESSION" -b "<thread block>" '<message>' &&
   rex send-key -s "$REX_SESSION" -b "<thread block>" enter
 ```
 
-The thread reports back the same way, to your block. Keep every message on one line, because a newline submits the text early.
+The thread reports back the same way, to your block.
 
 **T3 Code.** A thread is a new top-level thread from `t3_thread_launch` (load the T3 thread tools with ToolSearch), started in the current working directory as the t3-handoff skill describes. Keep the returned `threadId`. You and the thread message each other with T3's thread message tool, each addressing the other's thread ID.
 
@@ -55,9 +59,9 @@ The thread reports back the same way, to your block. Keep every message on one l
 When you finish, or when you would otherwise stop to ask the user, report back to the orchestrator: <how>.
 ```
 
-`<how>` in Rex: `write the full report to a file in the OS temp directory, then run rex send -s <your session> -b <your block> '<verdict and the report path, on one line>' && rex send-key -s <your session> -b <your block> enter`. In T3: `send the report as a message to thread <your thread ID>`.
+`<how>` in Rex: `run rex send -s <orchestrator session> -b <orchestrator block> '<your report>' && rex send-key -s <orchestrator session> -b <orchestrator block> enter`. In T3: `send the report as a message to thread <orchestrator thread ID>`. Fill in your own IDs before you send the prompt.
 
-**Waiting.** After you spawn or message a thread, end your turn. Its report arrives as a new message. When it does, read the full report before you act on it.
+**Waiting.** After you spawn or message a thread, tell the user which tab you are waiting on and that any permission prompt from the thread appears there. Then end your turn. Its report arrives as a new message.
 
 **Reuse.** Each stage keeps one thread. Send every re-review to the review thread and every re-verify to the verify thread. Spawn a replacement only when the thread is gone.
 
@@ -73,7 +77,7 @@ Add `It addresses issue #<n>.` when the PR body does not link the issue.
 
 The review thread fixes what it finds and pushes. You do not fix review findings yourself. When it reports:
 
-- **Ready to merge, and you accept what it left.** Pull the branch and go to step 4.
+- **Ready to merge, and you accept what it left.** Go to step 4.
 - **It left something you judge worth fixing**, such as a minor finding it kept for the report or a finding it declined. Tell the review thread what to fix and why, then wait for its next report.
 - **Blocked, or it needs the user.** Resolve what you can. Otherwise ask the user, then pass the answer to the thread.
 
@@ -88,7 +92,7 @@ Verify PR #<number> works in the browser using /verify-it-work.
 The verify thread never edits code. When it reports:
 
 - **Works.** Go to step 5. No re-review.
-- **Does not work.** Fix the failures yourself, commit, and push. Then send the review thread `Re-review PR #<number> using /pr-gate-quality, only the commits <sha>..HEAD.` and wait for it to report clean, as in step 3. Pull the branch, then send the verify thread `Verify PR #<number> again using /verify-it-work.` Repeat until the verdict is Works.
+- **Does not work.** Fix the failures yourself, commit, and push. Then send the review thread `Re-review PR #<number> using /pr-gate-quality, only the commits <sha>..HEAD.` and wait for it to report clean, as in step 3. Then send the verify thread `Verify PR #<number> again using /verify-it-work.` Repeat until the verdict is Works.
 - **Not verified.** If the change has nothing a browser can observe, go to step 5 and say so in the final report. If checks were blocked, clear the blocker or ask the user, then send it to verify again. A blocked check never counts as passed.
 
 ## 5. CI
