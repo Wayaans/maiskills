@@ -23,7 +23,7 @@ Find the PR: the one named in the request, otherwise `gh pr view --json number,u
 
 The PR must already be open. If there is none, stop and tell the user. Do not create one.
 
-Commit and push any pending work for this change. Both threads need a clean working tree on the PR head branch.
+You must be on the PR head branch with a clean working tree and nothing unpushed (`git status -sb`). If there are uncommitted changes or unpushed commits, stop and tell the user the PR is not clean and not ready, and list what is pending. Do not commit or push it yourself.
 
 The threads share your working tree. Run one thread at a time, and edit nothing while a thread is working.
 
