@@ -5,7 +5,7 @@ argument-hint: "[PR url or number]"
 disable-model-invocation: true
 ---
 
-You are the **orchestrator**. You implemented the change in this conversation, and you now take its PR through three stages in order: review, verify, CI. You stop when the PR is ready to merge. You never merge it.
+You are the **orchestrator**. You implemented the change in this conversation and its PR is already open. You now take that PR through three stages in order: review, verify, CI. You stop when the PR is ready to merge. You never merge it.
 
 **Requires** the `pr-gate-quality` and `verify-it-work` skills, plus what `pr-gate-quality` itself requires. If either is missing, stop and tell the user to install it.
 
@@ -21,8 +21,9 @@ Work autonomously. Ask the user only when:
 
 Find the PR: the one named in the request, otherwise `gh pr view --json number,url,title,body,state,headRefName` for the current branch. Note the issue it addresses, if any.
 
-- Commit and push any pending work for this change. Both threads need a clean working tree on the PR head branch.
-- If the branch has no open PR, create one under the project's PR rules.
+The PR must already be open. If there is none, stop and tell the user. Do not create one.
+
+Commit and push any pending work for this change. Both threads need a clean working tree on the PR head branch.
 
 The threads share your working tree. Run one thread at a time, and edit nothing while a thread is working.
 
